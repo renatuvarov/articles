@@ -1,0 +1,58 @@
+version: "3.7"
+services:
+  nginx:
+    image: nginx:1.17-alpine
+    container_name: symfony-nginx
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    networks:
+      - symfony
+  php:
+    build:
+      args:
+        user: symfonyuser
+        uid: 1000
+      context: ./docker/php-fpm
+      dockerfile: Dockerfile
+    image: symfonyimage
+    container_name: symfony-php
+    restart: unless-stopped
+    working_dir: /var/www/
+    environment:
+      DB_HOST: db
+      DB_DATABASE: symfony
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    volumes:
+      - ./:/var/www
+      - ./docker/php-fpm/ini:/usr/local/etc/php
+    networks:
+      - symfony
+  db:
+    image: mysql:5.7
+    container_name: symfony-mysql
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: symfony
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_USER: root
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - symfony-mysqldata:/var/lib/mysql
+    networks:
+      - symfony
+networks:
+  symfony:
+    driver: bridge
+volumes:
+  symfony-mysqldata:
+
